@@ -24,9 +24,9 @@ struct inode {
     int inode_owner;
     int inode_group;
     int link_count;
-    string ctime;
-    string mtime;
-    string atime;
+    string c_time;
+    string m_time;
+    string a_time;
     int file_size;
     int num_blocks;
 }
