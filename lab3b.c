@@ -14,6 +14,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+/* to use isdigit() */
+#include <ctype.h>
+
 /* STRUCTS */
 struct superblock {
     int total_num_blocks;
@@ -83,25 +86,29 @@ int str_to_int(const char *s){
     return num;
 }
 
-void parse_file(int fd) {
-    int num_blocks;
+void parse_file(FILE* stream) {
     char line[1024];
-    read(fd, line, 1024);
-    const char * test = getfield(line, 5);
-    printf("%s\n", test);
-    num_blocks = str_to_int(test);
-    printf("%d\n", num_blocks);
+    while (fgets(line, 1024, stream) != NULL){
+        const char* type = getfield(line, 1);
+        printf("%s\n", type);
+        if (strcmp(type, "SUPERBLOCK") == 0){
+            printf("%s\n", "superblock");
+        }
+        else{
+            printf("%s\n", "not superblock");
+        }
+    }
 }
 
-void check_dirs(int fd) {
+void check_dirs() {
     return;
 }
 
-void check_inodes(int fd) {
+void check_inodes() {
     return;
 }
 
-void check_blocks(int fd) {
+void check_blocks() {
     return;
 }
 
@@ -112,16 +119,17 @@ int main(int argc, char * argv[]){
     	exit(1);
     }
     /* open the file system image */
-    int fd = open(argv[1], O_RDONLY);
-    if (fd < 0){
+    //int fd = open(argv[1], O_RDONLY);
+    FILE* input_file = fopen(argv[1], "r");
+    if (input_file == NULL){
     	fprintf(stderr, "Error opening file system.\n");
     	exit(1);
     }
 
-    parse_file(fd);
-    check_blocks(fd);
-    check_inodes(fd);
-    check_dirs(fd);
+    parse_file(input_file);
+    check_blocks();
+    check_inodes();
+    check_dirs();
     
     exit(0);
 }
