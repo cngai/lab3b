@@ -8,8 +8,18 @@ import sys
 import csv
 
 # Definitions for classes to store information about inodes and directories
+class SuperblockInfo():
+    def __init__(self, num_blocks=0, num_inodes=0, size_blocks=0, size_inodes=0, blocks_group=0, inodes_group=0, first_nr_inode=0):
+        self.num_blocks = num_blocks
+        self.num_inodes = num_inodes
+        self.size_blocks = size_blocks
+        self.size_inodes = size_inodes
+        self.blocks_group = blocks_group
+        self.inodes_group = inodes_group
+        self.first_nr_inode = first_nr_inode
+
 class InodeInfo():
-    def __init__(self, inode_num, inode_mode, link_count):
+    def __init__(self, inode_num=0, inode_mode=0, link_count=0):
         self.inode_num = inode_num
         self.inode_mode = inode_mode
         self.link_count = link_count
