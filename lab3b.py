@@ -47,10 +47,23 @@ freeBlocks = []
 freeInodes = []
 listBlocks = []
 inodeDict = dict()      # store each inode, with key being the inode # and the value being the inode class instance
-
 listDirs = []
 
 def checkBlocks():
+    # iterate through all the blocks
+    for i in listBlocks:
+        block_num = i.block_num
+        block_level = i.level
+        block_type = "BLOCK"
+        if block_level == 1:
+            block_type = "INDIRECT BLOCK"
+        if block_level == 2:
+            block_type = "DOUBLE INDIRECT BLOCK"
+        if block_level == 3:
+            block_type = "TRIPLE INDIRECT BLOCK"
+        # check if the block is valid
+        if block_num < 0 or block_num > superblock.num_blocks:
+            printf("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, i.inode_num, i.offset))
     return
 
 # wrapper functions for directory consistency audit
@@ -129,7 +142,7 @@ def parse_csv_file():
             SuperblockInfo.inodes_group = int(row[6])
             SuperblockInfo.first_nr_inode = int(row[7])
 
-        elif row[0] == 'BREE':
+        elif row[0] == 'BFREE':
             freeBlocks.append(int(row[1]))
 
         elif row[0] == 'IFREE':
@@ -155,7 +168,7 @@ def parse_csv_file():
                         offset = 268
                     elif level == 3:
                         offset = 65804
-
+                        
                 # create BlockInfo object and add to listBlocks[]
                 if block_addrs > 0:
                     block = BlockInfo(block_addrs, int(row[1]), offset, level)
@@ -182,7 +195,6 @@ def parse_csv_file():
                 pass
             else:
                 listBlocks.append(block)
-
 
 if __name__ == "__main__":
     parse_csv_file()
