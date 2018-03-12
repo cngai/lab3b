@@ -52,8 +52,10 @@ listDirs = []
 def checkBlocks():
     # iterate through all the blocks
     for i in blockDict.keys():
-        block_num = blockDict[i].block_num
-        block_level = blockDict[i].level
+        block = list(blockDict[i])
+        realBlock = block[0]
+        block_num = realBlock.block_num
+        block_level = realBlock.level
         block_type = "BLOCK"
         if block_level == 1:
             block_type = "INDIRECT BLOCK"
@@ -63,11 +65,24 @@ def checkBlocks():
             block_type = "TRIPLE INDIRECT BLOCK"
         # check if the block is valid
         if block_num < 0 or block_num > superblock.num_blocks:
-            printf("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, blockDict[i].inode_num, blockDict[i].offset))
-    # check if block is duplicated
+            printf("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+        # check if block is free
+        if block_num in freeBlocks:
+            printf("ALLOCATED BLOCK %d ON FREELIST\n" % block_num)
+        # check if block is duplicated
+        elif len(block) > 1:
+            for duplicates in block:
+                block_level = duplicates.level
+                block_type = "BLOCK"
+                    if block_level == 1:
+                        block_type = "INDIRECT BLOCK"
+                    if block_level == 2:
+                        block_type = "DOUBLE INDIRECT BLOCK"
+                    if block_level == 3:
+                        block_type = "TRIPLE INDIRECT BLOCK"
+                printf("DUPLICATE %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
 
-
-return
+    return
 
 # wrapper functions for directory consistency audit
 def checkCurrAndParentDir():
