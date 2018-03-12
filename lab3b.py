@@ -53,6 +53,12 @@ def checkBlocks():
 
 def checkCurrAndParentDir():
 
+    for i in listDirs:
+        dir = listDirs[i]
+        if dir.name_entry == '\'.\'':
+            if dir.parent_inode_num != dir.ref_inode_num:
+                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d\n" % (dir.parent_inode_num, '\'.\'', dir.ref_inode_num, dir.parent_inode_num))
+
     return
 
 def checkValidDirReferences():
@@ -82,6 +88,7 @@ def checkDirs():
 
     countLinks()
     checkValidDirReferences()
+    checkCurrAndParentDir()
 
     return
 
