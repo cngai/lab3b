@@ -33,8 +33,8 @@ class DirInfo():
 
 
 # Array/List/Dict of the above classes ^
-freeInodes = list()
-listDirs = list()
+freeInodes = []
+listDirs = []
 inodeDict = dict()
 
 def checkBlocks():
