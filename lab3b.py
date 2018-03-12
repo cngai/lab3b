@@ -56,27 +56,27 @@ def checkBlocks():
 # wrapper functions for directory consistency audit
 def checkCurrAndParentDir():
     for i in listDirs:
-        dir = listDirs[i]
-        if dir.name_entry == '\'.\'':
-            if dir.parent_inode_num != dir.ref_inode_num:
-                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d\n" % (dir.parent_inode_num, '\'.\'', dir.ref_inode_num, dir.parent_inode_num))
+        direct = i
+        if direct.name_entry == '\'.\'':
+            if direct.parent_inode_num != direct.ref_inode_num:
+                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d\n" % (direct.parent_inode_num, '\'.\'', direct.ref_inode_num, direct.parent_inode_num))
     return
 
 def checkValidDirReferences():
     for i in listDirs:
-        dir = listDirs[i]
-        if dir.ref_inode_num in freeInodes:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (dir.parent_inode_num, dir.name_entry, dir.ref_inode_num))
+        direct = i
+        if direct.ref_inode_num in freeInodes:
+            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (direct.parent_inode_num, direct.name_entry, direct.ref_inode_num))
     return
 
 def countLinks():
     for i in listDirs:
-        dir = listDirs[i]
-        if dir.ref_inode_num in inodeDict.keys():
-            inodeDict[dir.ref_inode_num].listBlocks += 1
+        direct = i
+        if direct.ref_inode_num in inodeDict.keys():
+            inodeDict[direct.ref_inode_num].links_found += 1
     for key in inodeDict:
         if inodeDict[key].link_count != inodeDict[key].links_found:
-            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d\n" % (int(key), inodeDict[key].link_count, inodeDict[key].links_found))
+            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d\n" % (inodeDict[key].inode_num, inodeDict[key].link_count, inodeDict[key].links_found))
     return
 
 # DIECTORY CONSISTENCY AUDIT
@@ -91,7 +91,7 @@ def checkDirs():
 def checkInodes():
     for i in (superblock.first_nr_inode, superblock.num_inodes+1):
         if i in inodeDict.keys():
-            inode = inodeDict[i]
+            inode = i
             if inode.inode_mode > 0 and inode.link_count > 0:
                 if inode.inode_num in freeInodes:
                     print("ALLOCATED INODE %d ON FREELIST\n" % inode.inode_num)
@@ -157,8 +157,8 @@ def parse_csv_file():
                         offset = 65804
 
                 # create BlockInfo object and add to listBlocks[]
-                if block_num > 0:
-                    block = BlockInfo(block_num, int(row[1]), offset level)
+                if block_addrs > 0:
+                    block = BlockInfo(block_addrs, int(row[1]), offset, level)
 
                     #check if block already in listBlocks[]
                     if block in listBlocks:
@@ -170,13 +170,22 @@ def parse_csv_file():
             inodeDict[int(row[1])] = inode
 
         elif row[0] == 'DIRENT':
-            dir = DirInfo(int(row[1]), int(row[3]), row[6])
-            listDirs.add(dir)
+            direct = DirInfo(int(row[1]), int(row[3]), row[6])
+            listDirs.append(direct)
 
-    return
+        elif row[0] == 'INDIRECT':
+            block_addrs = int(row[5])
+            block = BlockInfo(block_addrs, int(row[1]), int(row[3]), int(row[2]) - 1)
+
+            #check if block already in listBlocks[]
+            if block in listBlocks:
+                pass
+            else:
+                listBlocks.append(block)
+
 
 if __name__ == "__main__":
     parse_csv_file()
     countLinks()
     checkInodes()
-    checkDirs()
+    checkDirs()
