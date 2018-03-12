@@ -40,9 +40,13 @@ class DirInfo():
 
 
 # Array/List/Dict of the above classes ^
-freeInodes = list()
-listDirs = list()
-inodeDict = dict()
+superblock = None
+listBlocks = []
+inodeDict = dict()      # store each inode, with key being the inode # and the value being the inode class instance
+listFreeInodes = []
+listDirs = []
+
+
 
 def checkBlocks():
     return
