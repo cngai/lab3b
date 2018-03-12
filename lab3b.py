@@ -1,3 +1,5 @@
+#!/bin/python
+
 # NAME: Virgil Jose, Christopher Ngai
 # EMAIL: virgil@ucla.edu, cngai1223@gmail.com,
 # ID: 904765891, 404795904
@@ -6,14 +8,14 @@ import sys
 import csv
 
 # Definitions for classes to store information about inodes and directories
-class InodeInfo:
+class InodeInfo():
     def __init__(self, inode_num, inode_mode, link_count):
         self.inode_num = inode_num
         self.inode_mode = inode_mode
         self.link_count = link_count
         self.links_found = 0
 
-class DirInfo:
+class DirInfo():
     def __init__(self, parent_inode_num, ref_inode_num, name_entry):
         self.parent_inode_num = parent_inode_num
         self.ref_inode_num = ref_inode_num
@@ -41,7 +43,7 @@ def checkInodes():
             for i in range(len(freeInodes)):
                 if inode.inode_num == freeInodes[i]:
                     print("ALLOCATED INODE %d ON FREELIST" % inode.inode_num)
-        elif inode.inode_mode < 0
+        elif inode.inode_mode < 0:
             onList = 0
             for i in range(len(freeInodes)):
                 if inode.inode_num == freeInodes[i]:
@@ -63,7 +65,7 @@ def countLinks():
 
 def parse_csv_file(argv):
     # check if we have the correct number of arguments
-    if len(sys.argv) not 2:
+    if len(sys.argv) != 2:
         print("Invalid number of arguments. Usage: ./lab3b.py csvfile.csv\n")
         sys.exit(1)
     # open the CSV file
@@ -91,3 +93,4 @@ def main():
     parse_csv_file(argv)
     countLinks()
     checkInodes()
+    chediDirs()
