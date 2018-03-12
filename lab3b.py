@@ -43,7 +43,7 @@ class DirInfo():
 superblock = None
 listBlocks = []
 inodeDict = dict()      # store each inode, with key being the inode # and the value being the inode class instance
-listFreeInodes = []
+freeInodes = []
 listDirs = []
 
 
@@ -51,9 +51,34 @@ listDirs = []
 def checkBlocks():
     return
 
+def checkValidDirReferences():
+
+    for i in listDirs:
+        dir = listDirs[i]
+        if dir.ref_inode_num in freeInodes:
+            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (dir.parent_inode_num, dir.name_entry, dir.ref_inode_num))
+
+def countLinks():
+    
+    for i in listDirs:
+        dir = listDirs[i]
+        if dir.ref_inode_num in inodeDict.keys():
+            inodeDict[dir.ref_inode_num].listBlocks += 1
+
+    for key in inodeDict:
+        if inodeDict[key].link_count != inodeDict[key].links_found:
+            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d\n" % (int(key), inodeDict[key].link_count, inodeDict[key].links_found))
+
+    return
+
 # DIECTORY CONSISTENCY AUDIT
 def checkDirs():
+
+    countLinks()
+    checkValidDirReferences()
+
     return
+
 
 # I-NODE ALLOCATION AUDIT
 def checkInodes():
@@ -63,7 +88,7 @@ def checkInodes():
         if inode.inode_mode > 0 and inode.link_count > 0:
             for i in range(len(freeInodes)):
                 if inode.inode_num == freeInodes[i]:
-                    print("ALLOCATED INODE %d ON FREELIST" % inode.inode_num)
+                    print("ALLOCATED INODE %d ON FREELIST\n" % inode.inode_num)
         elif inode.inode_mode < 0:
             onList = 0
             for i in range(len(freeInodes)):
@@ -71,16 +96,8 @@ def checkInodes():
                     onList = 1
                     break
             if onList == 0:
-                print("UNALLOCATED INODE %d NOT ON FREELIST" % inode.inode_num)
+                print("UNALLOCATED INODE %d NOT ON FREELIST\n" % inode.inode_num)
 
-    return
-
-# count the number of links in all the directories.
-# enumarate them in the inodeDict
-def countLinks():
-    
-    
-    
     return
 
 
