@@ -47,42 +47,59 @@ freeBlocks = []
 freeInodes = []
 listBlocks = []
 inodeDict = dict()      # store each inode, with key being the inode # and the value being the inode class instance
-listDirs = []
 
+listDirs = []
 
 def checkBlocks():
     return
 
+# wrapper functions for directory consistency audit
+def checkCurrAndParentDir():
+    for i in listDirs:
+        dir = listDirs[i]
+        if dir.name_entry == '\'.\'':
+            if dir.parent_inode_num != dir.ref_inode_num:
+                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d\n" % (dir.parent_inode_num, '\'.\'', dir.ref_inode_num, dir.parent_inode_num))
+    return
+
+def checkValidDirReferences():
+    for i in listDirs:
+        dir = listDirs[i]
+        if dir.ref_inode_num in freeInodes:
+            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (dir.parent_inode_num, dir.name_entry, dir.ref_inode_num))
+    return
+
+def countLinks():
+    for i in listDirs:
+        dir = listDirs[i]
+        if dir.ref_inode_num in inodeDict.keys():
+            inodeDict[dir.ref_inode_num].listBlocks += 1
+    for key in inodeDict:
+        if inodeDict[key].link_count != inodeDict[key].links_found:
+            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d\n" % (int(key), inodeDict[key].link_count, inodeDict[key].links_found))
+    return
+
 # DIECTORY CONSISTENCY AUDIT
 def checkDirs():
+    countLinks()
+    checkValidDirReferences()
+    checkCurrAndParentDir()
     return
+
 
 # I-NODE ALLOCATION AUDIT
 def checkInodes():
-
-    for key in inodeDict:
-        inode = inodeDict[key]
-        if inode.inode_mode > 0 and inode.link_count > 0:
-            for i in range(len(freeInodes)):
-                if inode.inode_num == freeInodes[i]:
-                    print("ALLOCATED INODE %d ON FREELIST" % inode.inode_num)
-        elif inode.inode_mode < 0:
-            onList = 0
-            for i in range(len(freeInodes)):
-                if inode.inode_num == freeInodes[i]:
-                    onList = 1
-                    break
-            if onList == 0:
-                print("UNALLOCATED INODE %d NOT ON FREELIST" % inode.inode_num)
-
-    return
-
-# count the number of links in all the directories.
-# enumarate them in the inodeDict
-def countLinks():
-    
-    
-    
+    for i in (superblock.first_nr_inode, superblock.num_inodes+1):
+        if i in inodeDict.keys():
+            inode = inodeDict[i]
+            if inode.inode_mode > 0 and inode.link_count > 0:
+                if inode.inode_num in freeInodes:
+                    print("ALLOCATED INODE %d ON FREELIST\n" % inode.inode_num)
+                elif inode.inode_mode < 0 and inode.inode_num not in freeInodes:
+                    print("UNALLOCATED INODE %d NOT ON FREELIST\n" % inode.inode_num)
+    else:
+        if i not in freeInodes:
+            print("UNALLOCATED INODE %d NOT ON FREELIST\n" % i)
     return
 
 def parse_csv_file():
