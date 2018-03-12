@@ -79,7 +79,6 @@ def countLinks():
     
     return
 
-
 def parse_csv_file():
     # check if we have the correct number of arguments
     if len(sys.argv) != 2:
