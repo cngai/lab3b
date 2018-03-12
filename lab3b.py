@@ -73,7 +73,7 @@ def countLinks():
     return
 
 
-def parse_csv_file(argv):
+def parse_csv_file():
     # check if we have the correct number of arguments
     if len(sys.argv) != 2:
         print("Invalid number of arguments. Usage: ./lab3b.py csvfile.csv\n")
@@ -99,8 +99,8 @@ def parse_csv_file(argv):
 
     return
 
-def main():
-    parse_csv_file(argv)
+if __name__ == "__main__":
+    parse_csv_file()
     countLinks()
     checkInodes()
-    chediDirs()
+    checkDirs()
