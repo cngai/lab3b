@@ -18,6 +18,13 @@ class SuperblockInfo():
         self.inodes_group = inodes_group
         self.first_nr_inode = first_nr_inode
 
+class BlockInfo():
+    def __init__(self, block_num=0, inode_num=0, offset=0, level=0):
+        self.block_num = block_num
+        self.inode_num = inode_num
+        self.offset = offset
+        self.level = level
+
 class InodeInfo():
     def __init__(self, inode_num=0, inode_mode=0, link_count=0):
         self.inode_num = inode_num
@@ -26,7 +33,7 @@ class InodeInfo():
         self.links_found = 0
 
 class DirInfo():
-    def __init__(self, parent_inode_num, ref_inode_num, name_entry):
+    def __init__(self, parent_inode_num=0, ref_inode_num=0, name_entry=0):
         self.parent_inode_num = parent_inode_num
         self.ref_inode_num = ref_inode_num
         self.name_entry = name_entry
