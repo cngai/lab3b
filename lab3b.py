@@ -45,15 +45,15 @@ class DirInfo():
 superblock = SuperblockInfo()
 freeBlocks = []
 freeInodes = []
-listBlocks = []
+blockDict = dict()
 inodeDict = dict()      # store each inode, with key being the inode # and the value being the inode class instance
 listDirs = []
 
 def checkBlocks():
     # iterate through all the blocks
-    for i in listBlocks:
-        block_num = i.block_num
-        block_level = i.level
+    for i in blockDict.keys():
+        block_num = blockDict[i].block_num
+        block_level = blockDict[i].level
         block_type = "BLOCK"
         if block_level == 1:
             block_type = "INDIRECT BLOCK"
@@ -63,8 +63,11 @@ def checkBlocks():
             block_type = "TRIPLE INDIRECT BLOCK"
         # check if the block is valid
         if block_num < 0 or block_num > superblock.num_blocks:
-            printf("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, i.inode_num, i.offset))
-    return
+            printf("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, blockDict[i].inode_num, blockDict[i].offset))
+    # check if block is duplicated
+
+
+return
 
 # wrapper functions for directory consistency audit
 def checkCurrAndParentDir():
@@ -120,7 +123,7 @@ def parse_csv_file():
     if len(sys.argv) != 2:
         print("Invalid number of arguments. Usage: ./lab3b.py csvfile.csv\n", file=sys.stderr)
         sys.exit(1)
-
+    
     # open the CSV file
     try:
         csvFile = open(sys.argv[1], "rb")
@@ -131,33 +134,33 @@ def parse_csv_file():
     # parse the CSV file
     parser = csv.reader(csvFile, delimiter=',')
 
-    # go through every line in ther CSV file
-    for row in parser:
-        if row[0] == 'SUPERBLOCK':
-            SuperblockInfo.num_blocks = int(row[1])
-            SuperblockInfo.num_inodes = int(row[2])
-            SuperblockInfo.size_blocks = int(row[3])
-            SuperblockInfo.size_inodes = int(row[4])
-            SuperblockInfo.blocks_group = int(row[5])
-            SuperblockInfo.inodes_group = int(row[6])
-            SuperblockInfo.first_nr_inode = int(row[7])
-
+# go through every line in ther CSV file
+for row in parser:
+    if row[0] == 'SUPERBLOCK':
+        SuperblockInfo.num_blocks = int(row[1])
+        SuperblockInfo.num_inodes = int(row[2])
+        SuperblockInfo.size_blocks = int(row[3])
+        SuperblockInfo.size_inodes = int(row[4])
+        SuperblockInfo.blocks_group = int(row[5])
+        SuperblockInfo.inodes_group = int(row[6])
+        SuperblockInfo.first_nr_inode = int(row[7])
+        
         elif row[0] == 'BFREE':
             freeBlocks.append(int(row[1]))
-
+        
         elif row[0] == 'IFREE':
             freeInodes.append(int(row[1]))
-
+    
         elif row[0] == 'INODE':
             inode = InodeInfo(int(row[1]),int(row[3]),int(row[6]))
-
+            
             # iterate through each block addresses
             for x in range(15):
                 block_addrs = int(row[12+x])
                 inode.addresses.append(block_addrs)
                 level = 0
                 offset = x
-
+                
                 # if single, double, triple indirect block
                 if x >= 12:
                     level = x - 11      #level will be either 1, 2, 3
@@ -168,20 +171,20 @@ def parse_csv_file():
                         offset = 268
                     elif level == 3:
                         offset = 65804
-                        
+            
                 # create BlockInfo object and add to listBlocks[]
                 if block_addrs > 0:
                     block = BlockInfo(block_addrs, int(row[1]), offset, level)
-
+                    
                     #check if block already in listBlocks[]
                     if block in listBlocks:
                         pass
                     else:
                         listBlocks.append(block)
 
-            # append inode to inodeDict            
-            inodeDict[int(row[1])] = inode
-
+        # append inode to inodeDict
+    inodeDict[int(row[1])] = inode
+        
         elif row[0] == 'DIRENT':
             direct = DirInfo(int(row[1]), int(row[3]), row[6])
             listDirs.append(direct)
@@ -189,7 +192,7 @@ def parse_csv_file():
         elif row[0] == 'INDIRECT':
             block_addrs = int(row[5])
             block = BlockInfo(block_addrs, int(row[1]), int(row[3]), int(row[2]) - 1)
-
+            
             #check if block already in listBlocks[]
             if block in listBlocks:
                 pass
@@ -201,3 +204,4 @@ if __name__ == "__main__":
     countLinks()
     checkInodes()
     checkDirs()
+
