@@ -69,6 +69,9 @@ def checkBlocks():
         # check if block is free
         if block_num in freeBlocks:
             printf("ALLOCATED BLOCK %d ON FREELIST\n" % block_num)
+        # check if block is reserved
+        if block_num > 0 and block_num < 9:
+            printf("RESERVED %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is duplicated
         elif len(block) > 1:
             for duplicates in block:
@@ -149,23 +152,23 @@ def parse_csv_file():
     # parse the CSV file
     parser = csv.reader(csvFile, delimiter=',')
 
-# go through every line in ther CSV file
-for row in parser:
-    if row[0] == 'SUPERBLOCK':
-        SuperblockInfo.num_blocks = int(row[1])
-        SuperblockInfo.num_inodes = int(row[2])
-        SuperblockInfo.size_blocks = int(row[3])
-        SuperblockInfo.size_inodes = int(row[4])
-        SuperblockInfo.blocks_group = int(row[5])
-        SuperblockInfo.inodes_group = int(row[6])
-        SuperblockInfo.first_nr_inode = int(row[7])
-        
+    # go through every line in ther CSV file
+    for row in parser:
+        if row[0] == 'SUPERBLOCK':
+            SuperblockInfo.num_blocks = int(row[1])
+            SuperblockInfo.num_inodes = int(row[2])
+            SuperblockInfo.size_blocks = int(row[3])
+            SuperblockInfo.size_inodes = int(row[4])
+            SuperblockInfo.blocks_group = int(row[5])
+            SuperblockInfo.inodes_group = int(row[6])
+            SuperblockInfo.first_nr_inode = int(row[7])
+            
         elif row[0] == 'BFREE':
             freeBlocks.append(int(row[1]))
-        
+
         elif row[0] == 'IFREE':
             freeInodes.append(int(row[1]))
-    
+
         elif row[0] == 'INODE':
             inode = InodeInfo(int(row[1]),int(row[3]),int(row[6]))
             
@@ -198,7 +201,7 @@ for row in parser:
                         listBlocks.append(block)
 
         # append inode to inodeDict
-    inodeDict[int(row[1])] = inode
+        inodeDict[int(row[1])] = inode
         
         elif row[0] == 'DIRENT':
             direct = DirInfo(int(row[1]), int(row[3]), row[6])
