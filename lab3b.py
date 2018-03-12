@@ -51,12 +51,18 @@ listDirs = []
 def checkBlocks():
     return
 
+def checkCurrAndParentDir():
+
+    return
+
 def checkValidDirReferences():
 
     for i in listDirs:
         dir = listDirs[i]
         if dir.ref_inode_num in freeInodes:
             print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (dir.parent_inode_num, dir.name_entry, dir.ref_inode_num))
+
+    return
 
 def countLinks():
     
