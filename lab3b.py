@@ -4,6 +4,7 @@
 # EMAIL: virgil@ucla.edu, cngai1223@gmail.com,
 # ID: 904765891, 404795904
 
+from __future__ import print_function
 import sys
 import csv
 
@@ -31,6 +32,7 @@ class InodeInfo():
         self.inode_mode = inode_mode
         self.link_count = link_count
         self.links_found = 0
+        self.addresses = []
 
 class DirInfo():
     def __init__(self, parent_inode_num=0, ref_inode_num=0, name_entry=0):
@@ -40,10 +42,12 @@ class DirInfo():
 
 
 # Array/List/Dict of the above classes ^
-superblock = None
+superblock = SuperblockInfo()
+freeBlocks = []
+freeInodes = []
 listBlocks = []
 inodeDict = dict()      # store each inode, with key being the inode # and the value being the inode class instance
-freeInodes = []
+
 listDirs = []
 
 def checkBlocks():
@@ -98,28 +102,74 @@ def checkInodes():
             print("UNALLOCATED INODE %d NOT ON FREELIST\n" % i)
     return
 
-
 def parse_csv_file():
     # check if we have the correct number of arguments
     if len(sys.argv) != 2:
-        print("Invalid number of arguments. Usage: ./lab3b.py csvfile.csv\n")
+        print("Invalid number of arguments. Usage: ./lab3b.py csvfile.csv\n", file=sys.stderr)
         sys.exit(1)
+
     # open the CSV file
     try:
-        csvFile = open(sys.argv[1], "w+")
+        csvFile = open(sys.argv[1], "rb")
     except:
-        print("Error opening CSV file\n")
+        print("Error opening CSV file\n", file=sys.stderr)
         sys.exit(1)
+
     # parse the CSV file
     parser = csv.reader(csvFile, delimiter=',')
+
     # go through every line in ther CSV file
     for row in parser:
-        if row[0] == "INODE":
+        if row[0] == 'SUPERBLOCK':
+            SuperblockInfo.num_blocks = int(row[1])
+            SuperblockInfo.num_inodes = int(row[2])
+            SuperblockInfo.size_blocks = int(row[3])
+            SuperblockInfo.size_inodes = int(row[4])
+            SuperblockInfo.blocks_group = int(row[5])
+            SuperblockInfo.inodes_group = int(row[6])
+            SuperblockInfo.first_nr_inode = int(row[7])
+
+        elif row[0] == 'BREE':
+            freeBlocks.append(int(row[1]))
+
+        elif row[0] == 'IFREE':
+            freeInodes.append(int(row[1]))
+
+        elif row[0] == 'INODE':
             inode = InodeInfo(int(row[1]),int(row[3]),int(row[6]))
+
+            # iterate through each block addresses
+            for x in range(15):
+                block_addrs = int(row[12+x])
+                inode.addresses.append(block_addrs)
+                level = 0
+                offset = x
+
+                # if single, double, triple indirect block
+                if x >= 12:
+                    level = x - 11      #level will be either 1, 2, 3
+                    # set original offset
+                    if level == 1:
+                        offset = 12
+                    elif level == 2:
+                        offset = 268
+                    elif level == 3:
+                        offset = 65804
+
+                # create BlockInfo object and add to listBlocks[]
+                if block_num > 0:
+                    block = BlockInfo(block_num, int(row[1]), offset level)
+
+                    #check if block already in listBlocks[]
+                    if block in listBlocks:
+                        pass
+                    else:
+                        listBlocks.append(block)
+
+            # append inode to inodeDict            
             inodeDict[int(row[1])] = inode
-        elif row[0] == "IFREE":
-            freeInodes.add(int(row[1]))
-        elif row[0] == "DIRENT":
+
+        elif row[0] == 'DIRENT':
             dir = DirInfo(int(row[1]), int(row[3]), row[6])
             listDirs.add(dir)
 
