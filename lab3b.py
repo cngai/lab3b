@@ -69,27 +69,27 @@ def checkBlocks():
 # wrapper functions for directory consistency audit
 def checkCurrAndParentDir():
     for i in listDirs:
-        dir = listDirs[i]
-        if dir.name_entry == '\'.\'':
-            if dir.parent_inode_num != dir.ref_inode_num:
-                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d\n" % (dir.parent_inode_num, '\'.\'', dir.ref_inode_num, dir.parent_inode_num))
+        direct = i
+        if direct.name_entry == '\'.\'':
+            if direct.parent_inode_num != direct.ref_inode_num:
+                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d\n" % (direct.parent_inode_num, '\'.\'', direct.ref_inode_num, direct.parent_inode_num))
     return
 
 def checkValidDirReferences():
     for i in listDirs:
-        dir = listDirs[i]
-        if dir.ref_inode_num in freeInodes:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (dir.parent_inode_num, dir.name_entry, dir.ref_inode_num))
+        direct = i
+        if direct.ref_inode_num in freeInodes:
+            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (direct.parent_inode_num, direct.name_entry, direct.ref_inode_num))
     return
 
 def countLinks():
     for i in listDirs:
-        dir = listDirs[i]
-        if dir.ref_inode_num in inodeDict.keys():
-            inodeDict[dir.ref_inode_num].listBlocks += 1
+        direct = i
+        if direct.ref_inode_num in inodeDict.keys():
+            inodeDict[direct.ref_inode_num].links_found += 1
     for key in inodeDict:
         if inodeDict[key].link_count != inodeDict[key].links_found:
-            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d\n" % (int(key), inodeDict[key].link_count, inodeDict[key].links_found))
+            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d\n" % (inodeDict[key].inode_num, inodeDict[key].link_count, inodeDict[key].links_found))
     return
 
 # DIECTORY CONSISTENCY AUDIT
@@ -104,7 +104,7 @@ def checkDirs():
 def checkInodes():
     for i in (superblock.first_nr_inode, superblock.num_inodes+1):
         if i in inodeDict.keys():
-            inode = inodeDict[i]
+            inode = i
             if inode.inode_mode > 0 and inode.link_count > 0:
                 if inode.inode_num in freeInodes:
                     print("ALLOCATED INODE %d ON FREELIST\n" % inode.inode_num)
@@ -120,7 +120,7 @@ def parse_csv_file():
     if len(sys.argv) != 2:
         print("Invalid number of arguments. Usage: ./lab3b.py csvfile.csv\n", file=sys.stderr)
         sys.exit(1)
-    
+
     # open the CSV file
     try:
         csvFile = open(sys.argv[1], "rb")
@@ -131,33 +131,33 @@ def parse_csv_file():
     # parse the CSV file
     parser = csv.reader(csvFile, delimiter=',')
 
-# go through every line in ther CSV file
-for row in parser:
-    if row[0] == 'SUPERBLOCK':
-        SuperblockInfo.num_blocks = int(row[1])
-        SuperblockInfo.num_inodes = int(row[2])
-        SuperblockInfo.size_blocks = int(row[3])
-        SuperblockInfo.size_inodes = int(row[4])
-        SuperblockInfo.blocks_group = int(row[5])
-        SuperblockInfo.inodes_group = int(row[6])
-        SuperblockInfo.first_nr_inode = int(row[7])
-        
-        elif row[0] == 'BREE':
+    # go through every line in ther CSV file
+    for row in parser:
+        if row[0] == 'SUPERBLOCK':
+            SuperblockInfo.num_blocks = int(row[1])
+            SuperblockInfo.num_inodes = int(row[2])
+            SuperblockInfo.size_blocks = int(row[3])
+            SuperblockInfo.size_inodes = int(row[4])
+            SuperblockInfo.blocks_group = int(row[5])
+            SuperblockInfo.inodes_group = int(row[6])
+            SuperblockInfo.first_nr_inode = int(row[7])
+
+        elif row[0] == 'BFREE':
             freeBlocks.append(int(row[1]))
-        
+
         elif row[0] == 'IFREE':
             freeInodes.append(int(row[1]))
-    
+
         elif row[0] == 'INODE':
             inode = InodeInfo(int(row[1]),int(row[3]),int(row[6]))
-            
+
             # iterate through each block addresses
             for x in range(15):
                 block_addrs = int(row[12+x])
                 inode.addresses.append(block_addrs)
                 level = 0
                 offset = x
-                
+
                 # if single, double, triple indirect block
                 if x >= 12:
                     level = x - 11      #level will be either 1, 2, 3
@@ -168,29 +168,36 @@ for row in parser:
                         offset = 268
                     elif level == 3:
                         offset = 65804
-            
+                        
                 # create BlockInfo object and add to listBlocks[]
-                if block_num > 0:
-                    block = BlockInfo(block_num, int(row[1]), offset level)
-                    
+                if block_addrs > 0:
+                    block = BlockInfo(block_addrs, int(row[1]), offset, level)
+
                     #check if block already in listBlocks[]
                     if block in listBlocks:
                         pass
                     else:
                         listBlocks.append(block)
 
-        # append inode to inodeDict
-    inodeDict[int(row[1])] = inode
-        
-        elif row[0] == 'DIRENT':
-            dir = DirInfo(int(row[1]), int(row[3]), row[6])
-            listDirs.add(dir)
+            # append inode to inodeDict            
+            inodeDict[int(row[1])] = inode
 
-return
+        elif row[0] == 'DIRENT':
+            direct = DirInfo(int(row[1]), int(row[3]), row[6])
+            listDirs.append(direct)
+
+        elif row[0] == 'INDIRECT':
+            block_addrs = int(row[5])
+            block = BlockInfo(block_addrs, int(row[1]), int(row[3]), int(row[2]) - 1)
+
+            #check if block already in listBlocks[]
+            if block in listBlocks:
+                pass
+            else:
+                listBlocks.append(block)
 
 if __name__ == "__main__":
     parse_csv_file()
     countLinks()
     checkInodes()
-    checkDirs()
-
+    checkDirs()
