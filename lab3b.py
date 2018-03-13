@@ -68,13 +68,13 @@ def checkBlocks():
             block_type = "TRIPLE INDIRECT BLOCK"
         # check if the block is valid
         if i < 0 or i >= superblock.num_blocks:
-            print("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+            print("INVALID %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is free
         elif block_num in freeBlocks:
-            print("ALLOCATED BLOCK %d ON FREELIST\n" % block_num)
+            print("ALLOCATED BLOCK %d ON FREELIST" % block_num)
         # check if block is reserved
         elif i < (superblock.first_block_inodes + (128 * superblock.num_inodes - 1) / superblock.size_blocks + 1):
-            print("RESERVED %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+            print("RESERVED %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is duplicated
         elif len(block) > 1:
             for duplicates in block:
@@ -86,7 +86,7 @@ def checkBlocks():
                     block_type = "DOUBLE INDIRECT BLOCK"
                 if block_level == 3:
                     block_type = "TRIPLE INDIRECT BLOCK"
-            print("DUPLICATE %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+            print("DUPLICATE %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
 
     return
 
@@ -96,7 +96,7 @@ def checkValidDirReferences():
     for i in listDirs:
         direct = i
         if direct.ref_inode_num in freeInodes:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (direct.parent_inode_num, direct.name_entry, direct.ref_inode_num))
+            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d" % (direct.parent_inode_num, direct.name_entry, direct.ref_inode_num))
     return
     """
 
@@ -106,14 +106,14 @@ def checkCurrAndParentDir():
         direct = i
         if direct.name_entry == '\'.\'':
             if direct.parent_inode_num != direct.ref_inode_num:
-                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d\n" % (direct.parent_inode_num, '\'.\'', direct.ref_inode_num, direct.parent_inode_num))
+                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d" % (direct.parent_inode_num, '\'.\'', direct.ref_inode_num, direct.parent_inode_num))
     return
     """
 
 def checkLinks():
     for key in inodeDict:
         if inodeDict[key].inode_mode > 0 and inodeDict[key].link_count != inodeDict[key].links_found:
-            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d\n" % (inodeDict[key].inode_num, inodeDict[key].link_count, inodeDict[key].links_found))
+            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d" % (inodeDict[key].inode_num, inodeDict[key].link_count, inodeDict[key].links_found))
     return
 
 # DIECTORY CONSISTENCY AUDIT
@@ -133,7 +133,7 @@ def checkDirs():
         #check current directory
         if i.name_entry == '\'.\'':
             if i.parent_inode_num != i.ref_inode_num:
-                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d\n" % (i.parent_inode_num, i.name_entry, i.ref_inode_num, i.parent_inode_num))
+                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num, i.parent_inode_num))
         #check parent directory
         elif i.name_entry == '\'..\'':
             if i.parent_inode_num == 2 or i.ref_inode_num == 2:
@@ -148,11 +148,11 @@ def checkDirs():
         #check if unallocated
         elif i.ref_inode_num in freeInodes:
             if i.ref_inode_num >= superblock.first_nr_inode and i.ref_inode_num <= num_blocks:
-                print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
+                print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
         elif i.ref_inode_num in inodeDict.keys() and inodeDict[i.ref_inode_num].inode_mode <= 0:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (i.superblock, i.name_entry, i.ref_inode_num))
+            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d" % (i.superblock, i.name_entry, i.ref_inode_num))
         elif i.ref_inode_num not in inodeDict.keys() and i.ref_inode_num > superblock.first_nr_inode:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
+            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
 
 
     #check if reference count matches link count
@@ -165,30 +165,30 @@ def checkDirs():
 
 # I-NODE ALLOCATION AUDIT
 def checkInodes():
-    for i in (superblock.first_nr_inode, superblock.num_inodes+1):
+    for i in range(superblock.first_nr_inode, superblock.num_inodes+1):
         if i in inodeDict.keys():
             inode = inodeDict[i]
             if inode.inode_mode > 0 and inode.link_count > 0:
                 if inode.inode_num in freeInodes:
-                    print("ALLOCATED INODE %d ON FREELIST\n" % inode.inode_num)
+                    print("ALLOCATED INODE %d ON FREELIST" % inode.inode_num)
                 elif inode.inode_mode < 0 and inode.inode_num not in freeInodes:
-                    print("UNALLOCATED INODE %d NOT ON FREELIST\n" % inode.inode_num)
-    else:
-        if i not in freeInodes:
-            print("UNALLOCATED INODE %d NOT ON FREELIST\n" % i)
+                    print("UNALLOCATED INODE %d NOT ON FREELIST" % inode.inode_num)
+        else:
+            if i not in freeInodes:
+                print("UNALLOCATED INODE %d NOT ON FREELIST" % i)
     return
 
 def parse_csv_file():
     # check if we have the correct number of arguments
     if len(sys.argv) != 2:
-        print("Invalid number of arguments. Usage: ./lab3b.py csvfile.csv\n", file=sys.stderr)
+        print("Invalid number of arguments. Usage: ./lab3b.py csvfile.csv", file=sys.stderr)
         sys.exit(1)
     
     # open the CSV file
     try:
         csvFile = open(sys.argv[1], "rb")
     except:
-        print("Error opening CSV file\n", file=sys.stderr)
+        print("Error opening CSV file", file=sys.stderr)
         sys.exit(1)
 
     # parse the CSV file
