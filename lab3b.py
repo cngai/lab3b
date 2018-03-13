@@ -86,7 +86,8 @@ def checkBlocks():
                     block_type = "DOUBLE INDIRECT BLOCK"
                 if block_level == 3:
                     block_type = "TRIPLE INDIRECT BLOCK"
-            print("DUPLICATE %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+                print("DUPLICATE %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, duplicates.inode_num, duplicates.offset))
+        
 
     # check for free legal data blocks
     # legal data block = every block between end of inodes and start of next group
@@ -120,7 +121,7 @@ def checkCurrAndParentDir():
 def checkLinks():
     for key in inodeDict:
         if inodeDict[key].inode_mode > 0 and inodeDict[key].link_count != inodeDict[key].links_found:
-            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d" % (inodeDict[key].inode_num, inodeDict[key].link_count, inodeDict[key].links_found))
+            print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d" % (inodeDict[key].inode_num, inodeDict[key].links_found, inodeDict[key].link_count))
     return
 
 # DIECTORY CONSISTENCY AUDIT
@@ -154,12 +155,12 @@ def checkDirs():
 
         #check if unallocated
         elif i.ref_inode_num in freeInodes:
-            if i.ref_inode_num >= superblock.first_nr_inode and i.ref_inode_num <= num_blocks:
-                print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
+            #if i.ref_inode_num >= superblock.first_nr_inode and i.ref_inode_num <= num_blocks:
+            print("DIRECTORY INODE %d NAME %s UNALLOCATED INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
         elif i.ref_inode_num in inodeDict.keys() and inodeDict[i.ref_inode_num].inode_mode <= 0:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d" % (i.superblock, i.name_entry, i.ref_inode_num))
+            print("DIRECTORY INODE %d NAME %s UNALLOCATED INODE %d" % (i.superblock, i.name_entry, i.ref_inode_num))
         elif i.ref_inode_num not in inodeDict.keys() and i.ref_inode_num > superblock.first_nr_inode:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
+            print("DIRECTORY INODE %d NAME %s UNALLOCATED INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
 
 
     #check if reference count matches link count
@@ -172,17 +173,19 @@ def checkDirs():
 
 # I-NODE ALLOCATION AUDIT
 def checkInodes():
+    for i in inodeDict.keys():
+        inode = inodeDict[i]
+        if inode.inode_mode > 0 and inode.link_count > 0:
+            if inode.inode_num in freeInodes:
+                print("ALLOCATED INODE %d ON FREELIST" % inode.inode_num)
+            elif inode.inode_mode < 0 and inode.inode_num not in freeInodes:
+                print("UNALLOCATED INODE %d NOT ON FREELIST" % inode.inode_num)
+
+    # check if unallocated            
     for i in range(superblock.first_nr_inode, superblock.num_inodes+1):
-        if i in inodeDict.keys():
-            inode = inodeDict[i]
-            if inode.inode_mode > 0 and inode.link_count > 0:
-                if inode.inode_num in freeInodes:
-                    print("ALLOCATED INODE %d ON FREELIST" % inode.inode_num)
-                elif inode.inode_mode < 0 and inode.inode_num not in freeInodes:
-                    print("UNALLOCATED INODE %d NOT ON FREELIST" % inode.inode_num)
-        else:
-            if i not in freeInodes:
-                print("UNALLOCATED INODE %d NOT ON FREELIST" % i)
+        if i not in freeInodes and i not in inodeDict.keys():
+            print("UNALLOCATED INODE %d NOT ON FREELIST" % i)
+
     return
 
 def parse_csv_file():
