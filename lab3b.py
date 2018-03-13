@@ -10,7 +10,7 @@ import csv
 
 # Definitions for classes to store information about inodes and directories
 class SuperblockInfo():
-    def __init__(self, num_blocks=0, num_inodes=0, size_blocks=0, size_inodes=0, blocks_group=0, inodes_group=0, first_nr_inode=0):
+    def __init__(self, num_blocks=0, num_inodes=0, size_blocks=0, size_inodes=0, blocks_group=0, inodes_group=0, first_nr_inode=0, first_block_inodes=0):
         self.num_blocks = num_blocks
         self.num_inodes = num_inodes
         self.size_blocks = size_blocks
@@ -18,6 +18,7 @@ class SuperblockInfo():
         self.blocks_group = blocks_group
         self.inodes_group = inodes_group
         self.first_nr_inode = first_nr_inode
+        self.first_block_inodes = first_block_inodes
 
 class BlockInfo():
     def __init__(self, block_num=0, inode_num=0, offset=0, level=0):
@@ -51,6 +52,7 @@ pinDict = dict()
 listDirs = []
 
 def checkBlocks():
+    start = superblock.first_block_inodes + (128 * superblock.num_inodes - 1) / superblock.size_blocks + 1
     # iterate through all the blocks
     for i in blockDict.keys():
         block = list(blockDict[i])
@@ -68,10 +70,10 @@ def checkBlocks():
         if i < 0 or i >= superblock.num_blocks:
             print("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is free
-        if block_num in freeBlocks:
+        elif block_num in freeBlocks:
             print("ALLOCATED BLOCK %d ON FREELIST\n" % block_num)
         # check if block is reserved
-        if block_num > 0 and block_num < 9:
+        elif i < (superblock.first_block_inodes + (128 * superblock.num_inodes - 1) / superblock.size_blocks + 1):
             print("RESERVED %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is duplicated
         elif len(block) > 1:
@@ -202,14 +204,17 @@ def parse_csv_file():
             superblock.blocks_group = int(row[5])
             superblock.inodes_group = int(row[6])
             superblock.first_nr_inode = int(row[7])
+
+        if row[0] == 'GROUP':
+            superblock.first_block_inodes = int(row[7])
             
-        elif row[0] == 'BFREE':
+        if row[0] == 'BFREE':
             freeBlocks.append(int(row[1]))
 
-        elif row[0] == 'IFREE':
+        if row[0] == 'IFREE':
             freeInodes.append(int(row[1]))
 
-        elif row[0] == 'INODE':
+        if row[0] == 'INODE':
             inode = InodeInfo(int(row[1]),int(row[3]),int(row[6]))
             
             # iterate through each block addresses
@@ -242,14 +247,14 @@ def parse_csv_file():
             # append inode to inodeDict
             inodeDict[int(row[1])] = inode
         
-        elif row[0] == 'DIRENT':
+        if row[0] == 'DIRENT':
             name_entry = row[6]
             direct = DirInfo(int(row[1]), int(row[3]), name_entry)
             listDirs.append(direct)
             if name_entry != '\'.\'' and name_entry != '\'..\'':
                 pinDict[int(row[3])] = int(row[1])
 
-        elif row[0] == 'INDIRECT':
+        if row[0] == 'INDIRECT':
             block_addrs = int(row[5])
             block = BlockInfo(block_addrs, int(row[1]), int(row[3]), int(row[2]) - 1)
 
