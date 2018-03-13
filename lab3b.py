@@ -73,7 +73,7 @@ def checkBlocks():
         elif block_num in freeBlocks:
             print("ALLOCATED BLOCK %d ON FREELIST" % block_num)
         # check if block is reserved
-        elif i < (superblock.first_block_inodes + (128 * superblock.num_inodes - 1) / superblock.size_blocks + 1):
+        elif i < start:
             print("RESERVED %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is duplicated
         elif len(block) > 1:
@@ -87,6 +87,13 @@ def checkBlocks():
                 if block_level == 3:
                     block_type = "TRIPLE INDIRECT BLOCK"
             print("DUPLICATE %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+
+    # check for free legal data blocks
+    # legal data block = every block between end of inodes and start of next group
+    for j in range(start + 1, superblock.num_blocks):   #NOT SURE IF SHOULD BE START + 1
+        #check if legal
+        if j not in freeBlocks and j not in blockDict.keys():
+            print("UNREFERENCED BLOCK %d" % (j))
 
     return
 
