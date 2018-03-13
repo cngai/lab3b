@@ -189,19 +189,18 @@ def parse_csv_file():
                         offset = 268
                     elif level == 3:
                         offset = 65804
-            
-                # create BlockInfo object and add to listBlocks[]
+                        
+                # create BlockInfo object and add to blockDict
                 if block_addrs > 0:
                     block = BlockInfo(block_addrs, int(row[1]), offset, level)
-                    
-                    #check if block already in listBlocks[]
-                    if block in listBlocks:
-                        pass
-                    else:
-                        listBlocks.append(block)
 
-        # append inode to inodeDict
-        inodeDict[int(row[1])] = inode
+                    #check if block already in blockDict
+                    if block_addrs not in blockDict:
+                        blockDict[block_addrs] = set()
+                    blockDict[block_addrs].add(block)
+
+            # append inode to inodeDict
+            inodeDict[int(row[1])] = inode
         
         elif row[0] == 'DIRENT':
             direct = DirInfo(int(row[1]), int(row[3]), row[6])
@@ -210,12 +209,11 @@ def parse_csv_file():
         elif row[0] == 'INDIRECT':
             block_addrs = int(row[5])
             block = BlockInfo(block_addrs, int(row[1]), int(row[3]), int(row[2]) - 1)
-            
-            #check if block already in listBlocks[]
-            if block in listBlocks:
-                pass
-            else:
-                listBlocks.append(block)
+
+            #check if block already in blockDict
+            if block_addrs not in blockDict:
+                blockDict[block_addrs] = set()
+            blockDict[block_addrs].add(block)
 
 if __name__ == "__main__":
     parse_csv_file()
