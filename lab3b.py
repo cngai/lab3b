@@ -65,7 +65,7 @@ def checkBlocks():
         if block_level == 3:
             block_type = "TRIPLE INDIRECT BLOCK"
         # check if the block is valid
-        if block_num < 0 or block_num > superblock.num_blocks:
+        if i < 0 or i >= superblock.num_blocks:
             print("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is free
         if block_num in freeBlocks:
@@ -120,7 +120,7 @@ def checkDirs():
 
     for i in listDirs:
         # check if invalid inode
-        if i.ref_inode_num < 1 or i.ref_inode_num > SuperblockInfo.num_inodes:
+        if i.ref_inode_num < 1 or i.ref_inode_num > superblock.num_inodes:
             print("DIRECTORY INODE %d NAME %s INVALID INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
             continue
 
@@ -145,11 +145,11 @@ def checkDirs():
 
         #check if unallocated
         elif i.ref_inode_num in freeInodes:
-            if i.ref_inode_num >= SuperblockInfo.first_nr_inode and i.ref_inode_num <= num_blocks:
+            if i.ref_inode_num >= superblock.first_nr_inode and i.ref_inode_num <= num_blocks:
                 print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
         elif i.ref_inode_num in inodeDict.keys() and inodeDict[i.ref_inode_num].inode_mode <= 0:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
-        elif i.ref_inode_num not in inodeDict.keys() and i.ref_inode_num > SuperblockInfo.first_nr_inode:
+            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (i.superblock, i.name_entry, i.ref_inode_num))
+        elif i.ref_inode_num not in inodeDict.keys() and i.ref_inode_num > superblock.first_nr_inode:
             print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d\n" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
 
 
@@ -165,7 +165,7 @@ def checkDirs():
 def checkInodes():
     for i in (superblock.first_nr_inode, superblock.num_inodes+1):
         if i in inodeDict.keys():
-            inode = i
+            inode = inodeDict[i]
             if inode.inode_mode > 0 and inode.link_count > 0:
                 if inode.inode_num in freeInodes:
                     print("ALLOCATED INODE %d ON FREELIST\n" % inode.inode_num)
@@ -195,13 +195,13 @@ def parse_csv_file():
     # go through every line in ther CSV file
     for row in parser:
         if row[0] == 'SUPERBLOCK':
-            SuperblockInfo.num_blocks = int(row[1])
-            SuperblockInfo.num_inodes = int(row[2])
-            SuperblockInfo.size_blocks = int(row[3])
-            SuperblockInfo.size_inodes = int(row[4])
-            SuperblockInfo.blocks_group = int(row[5])
-            SuperblockInfo.inodes_group = int(row[6])
-            SuperblockInfo.first_nr_inode = int(row[7])
+            superblock.num_blocks = int(row[1])
+            superblock.num_inodes = int(row[2])
+            superblock.size_blocks = int(row[3])
+            superblock.size_inodes = int(row[4])
+            superblock.blocks_group = int(row[5])
+            superblock.inodes_group = int(row[6])
+            superblock.first_nr_inode = int(row[7])
             
         elif row[0] == 'BFREE':
             freeBlocks.append(int(row[1]))
