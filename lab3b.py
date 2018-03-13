@@ -66,25 +66,25 @@ def checkBlocks():
             block_type = "TRIPLE INDIRECT BLOCK"
         # check if the block is valid
         if block_num < 0 or block_num > superblock.num_blocks:
-            printf("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+            print("INVALID %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is free
         if block_num in freeBlocks:
-            printf("ALLOCATED BLOCK %d ON FREELIST\n" % block_num)
+            print("ALLOCATED BLOCK %d ON FREELIST\n" % block_num)
         # check if block is reserved
         if block_num > 0 and block_num < 9:
-            printf("RESERVED %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+            print("RESERVED %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
         # check if block is duplicated
         elif len(block) > 1:
             for duplicates in block:
                 block_level = duplicates.level
                 block_type = "BLOCK"
-                    if block_level == 1:
-                        block_type = "INDIRECT BLOCK"
-                    if block_level == 2:
-                        block_type = "DOUBLE INDIRECT BLOCK"
-                    if block_level == 3:
-                        block_type = "TRIPLE INDIRECT BLOCK"
-                printf("DUPLICATE %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+                if block_level == 1:
+                    block_type = "INDIRECT BLOCK"
+                if block_level == 2:
+                    block_type = "DOUBLE INDIRECT BLOCK"
+                if block_level == 3:
+                    block_type = "TRIPLE INDIRECT BLOCK"
+            print("DUPLICATE %s %d IN INODE %d AT OFFSET %d\n" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
 
     return
 
