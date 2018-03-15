@@ -8,6 +8,9 @@ from __future__ import print_function
 import sys
 import csv
 
+# global variables
+inconsistencies = 0             # hold num of inconsistencies
+
 # Definitions for classes to store information about inodes and directories
 class SuperblockInfo():
     def __init__(self, num_blocks=0, num_inodes=0, size_blocks=0, size_inodes=0, blocks_group=0, inodes_group=0, first_nr_inode=0, first_block_inodes=0):
@@ -43,15 +46,19 @@ class DirInfo():
 
 
 # Array/List/Dict of the above classes ^
-superblock = SuperblockInfo()
-freeBlocks = []
-freeInodes = []
-blockDict = dict()
-inodeDict = dict()      # store each inode, with key being the inode # and the value being the inode class instance
-pinDict = dict()
-listDirs = []
+superblock = SuperblockInfo()   # initialize SuperblockInfo class
+freeBlocks = []                 # hold all free blocks (BFREE)
+freeInodes = []                 # hold all free inodes (IFREE)
+blockDict = dict()              # hold all blocks
+inodeDict = dict()              # store each inode, with key being the inode # and the value being the inode class instance
+pinDict = dict()                # hold parent inode numbers
+listDirs = []                   # hold all directory entries
 
+# WRAPPER FUNCTIONS
+# BLOCK CONSISTENCY AUDITS
 def checkBlocks():
+    global inconsistencies
+
     start = superblock.first_block_inodes + (128 * superblock.num_inodes - 1) / superblock.size_blocks + 1
     # iterate through all the blocks
     for i in blockDict.keys():
@@ -69,12 +76,15 @@ def checkBlocks():
         # check if the block is valid
         if i < 0 or i >= superblock.num_blocks:
             print("INVALID %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+            inconsistencies += 1
         # check if block is free
         elif block_num in freeBlocks:
             print("ALLOCATED BLOCK %d ON FREELIST" % block_num)
+            inconsistencies += 1
         # check if block is reserved
         elif i < start:
             print("RESERVED %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, realBlock.inode_num, realBlock.offset))
+            inconsistencies += 1
         # check if block is duplicated
         elif len(block) > 1:
             for duplicates in block:
@@ -87,51 +97,35 @@ def checkBlocks():
                 if block_level == 3:
                     block_type = "TRIPLE INDIRECT BLOCK"
                 print("DUPLICATE %s %d IN INODE %d AT OFFSET %d" % (block_type, block_num, duplicates.inode_num, duplicates.offset))
+                inconsistencies += 1
         
 
     # check for free legal data blocks
     # legal data block = every block between end of inodes and start of next group
-    for j in range(start + 1, superblock.num_blocks):   #NOT SURE IF SHOULD BE START + 1
+    for j in range(start + 1, superblock.num_blocks):
         #check if legal
         if j not in freeBlocks and j not in blockDict.keys():
             print("UNREFERENCED BLOCK %d" % (j))
+            inconsistencies += 1
 
-    return
-
-# wrapper functions for directory consistency audit
-"""
-def checkValidDirReferences():
-    for i in listDirs:
-        direct = i
-        if direct.ref_inode_num in freeInodes:
-            print("DIRECTORY INODE %d NAME '%s' UNALLOCATED INODE %d" % (direct.parent_inode_num, direct.name_entry, direct.ref_inode_num))
-    return
-    """
-
-"""
-def checkCurrAndParentDir():
-    for i in listDirs:
-        direct = i
-        if direct.name_entry == '\'.\'':
-            if direct.parent_inode_num != direct.ref_inode_num:
-                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d" % (direct.parent_inode_num, '\'.\'', direct.ref_inode_num, direct.parent_inode_num))
-    return
-    """
-
+# wrapper function for DCA to check links found
 def checkLinks():
+    global inconsistencies
+
     for key in inodeDict:
         if inodeDict[key].inode_mode > 0 and inodeDict[key].link_count != inodeDict[key].links_found:
             print("INODE %d HAS %d LINKS BUT LINKCOUNT IS %d" % (inodeDict[key].inode_num, inodeDict[key].links_found, inodeDict[key].link_count))
-    return
+            inconsistencies += 1
 
 # DIECTORY CONSISTENCY AUDIT
 def checkDirs():
-    #keys = inodeDict.keys()
+    global inconsistencies
 
     for i in listDirs:
         # check if invalid inode
         if i.ref_inode_num < 1 or i.ref_inode_num > superblock.num_inodes:
             print("DIRECTORY INODE %d NAME %s INVALID INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
+            inconsistencies += 1
             continue
 
         #update link count
@@ -142,51 +136,53 @@ def checkDirs():
         if i.name_entry == '\'.\'':
             if i.parent_inode_num != i.ref_inode_num:
                 print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num, i.parent_inode_num))
+                inconsistencies += 1
         #check parent directory
         elif i.name_entry == '\'..\'':
             if i.parent_inode_num == 2 or i.ref_inode_num == 2:
-                grandparent_inode_num = 2
+                gp_inode_num = 2
             else:
-                grandparent_inode_num = pinDict[i.parent_inode_num]
+                gp_inode_num = pinDict[i.parent_inode_num]
 
             #check grandparent directory
-            if grandparent_inode_num != i.ref_inode_num:
-                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num, grandparent_inode_num))
+            if gp_inode_num != i.ref_inode_num:
+                print("DIRECTORY INODE %d NAME %s LINK TO INODE %d SHOULD BE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num, gp_inode_num))
+                inconsistencies += 1
 
         #check if unallocated
         elif i.ref_inode_num in freeInodes:
             #if i.ref_inode_num >= superblock.first_nr_inode and i.ref_inode_num <= num_blocks:
             print("DIRECTORY INODE %d NAME %s UNALLOCATED INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
+            inconsistencies += 1
         elif i.ref_inode_num in inodeDict.keys() and inodeDict[i.ref_inode_num].inode_mode <= 0:
             print("DIRECTORY INODE %d NAME %s UNALLOCATED INODE %d" % (i.superblock, i.name_entry, i.ref_inode_num))
+            inconsistencies += 1
         elif i.ref_inode_num not in inodeDict.keys() and i.ref_inode_num > superblock.first_nr_inode:
             print("DIRECTORY INODE %d NAME %s UNALLOCATED INODE %d" % (i.parent_inode_num, i.name_entry, i.ref_inode_num))
-
+            inconsistencies += 1
 
     #check if reference count matches link count
     checkLinks()
 
-    #checkValidDirReferences()
-    #checkCurrAndParentDir()
-    return
-
-
 # I-NODE ALLOCATION AUDIT
 def checkInodes():
+    global inconsistencies
+    
     for i in inodeDict.keys():
         inode = inodeDict[i]
         if inode.inode_mode > 0 and inode.link_count > 0:
             if inode.inode_num in freeInodes:
                 print("ALLOCATED INODE %d ON FREELIST" % inode.inode_num)
+                inconsistencies += 1
             elif inode.inode_mode < 0 and inode.inode_num not in freeInodes:
                 print("UNALLOCATED INODE %d NOT ON FREELIST" % inode.inode_num)
+                inconsistencies += 1
 
     # check if unallocated            
     for i in range(superblock.first_nr_inode, superblock.num_inodes+1):
         if i not in freeInodes and i not in inodeDict.keys():
             print("UNALLOCATED INODE %d NOT ON FREELIST" % i)
-
-    return
+            inconsistencies += 1
 
 def parse_csv_file():
     # check if we have the correct number of arguments
@@ -236,7 +232,9 @@ def parse_csv_file():
                 
                 # if single, double, triple indirect block
                 if x >= 12:
-                    level = x - 11      #level will be either 1, 2, 3
+                    #level will be either 1, 2, 3
+                    level = x - 11
+
                     # set original offset
                     if level == 1:
                         offset = 12
@@ -275,8 +273,11 @@ def parse_csv_file():
 
 if __name__ == "__main__":
     parse_csv_file()
-    #countLinks()
-    checkDirs()
     checkBlocks()
+    checkDirs()
     checkInodes()
 
+    if inconsistencies != 0:
+        sys.exit(2)
+    else:
+        sys.exit(0)
